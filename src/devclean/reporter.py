@@ -1,4 +1,4 @@
-from src.devclean.cleaner import CleanResult
+from devclean.cleaner import CleanResult
 
 def format_size(size_mb: float) -> str:
     """Format size into MB or GB."""

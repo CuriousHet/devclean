@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 
-from src.devclean.exceptions import CleanError
-from src.devclean.scanner import ScanResult
+from devclean.exceptions import CleanError
+from devclean.scanner import ScanResult
 
 
 @dataclass(frozen=True)

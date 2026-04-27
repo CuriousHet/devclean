@@ -2,10 +2,10 @@ from pathlib import Path
 import argparse
 import sys
 
-from src.devclean.scanner import scan
-from src.devclean.cleaner import clean
-from src.devclean.reporter import print_result, print_summary
-from src.devclean.exceptions import ScanError, CleanError
+from devclean.scanner import scan
+from devclean.cleaner import clean
+from devclean.reporter import print_result, print_summary
+from devclean.exceptions import ScanError, CleanError
 
 
 DEFAULT_TARGETS = [

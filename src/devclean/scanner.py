@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.devclean.exceptions import ScanError
+from devclean.exceptions import ScanError
 
 
 @dataclass(frozen=True)
