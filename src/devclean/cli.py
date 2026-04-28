@@ -6,7 +6,7 @@ from devclean.scanner import scan
 from devclean.cleaner import clean
 from devclean.reporter import print_result, print_summary
 from devclean.exceptions import ScanError, CleanError
-
+from devclean.reporter import print_header
 
 DEFAULT_TARGETS = [
     "node_modules", "venv", ".venv", "env",
@@ -60,8 +60,7 @@ def main() -> None:
     targets = args.targets if args.targets else DEFAULT_TARGETS
     min_size: float = args.min_size
 
-    print(f"devclean — scanning {root}\n")
-
+    print_header(str(root))
     results = []
 
     try:
