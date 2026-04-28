@@ -1,4 +1,11 @@
+from rich.console import Console
+from rich.panel import Panel
 from devclean.cleaner import CleanResult
+
+console = Console()
+
+def print_header(root: str) -> None:
+    console.print(Panel(f"[bold cyan]devclean[/]  scanning [bold]{root}[/]"))
 
 def format_size(size_mb: float) -> str:
     """Format size into MB or GB."""
@@ -33,20 +40,26 @@ def print_result(result: CleanResult) -> None:
     elif status == "skipped":
         line += "   (already gone)"
 
-    print(line)
+    if status == "deleted":
+        console.print(f"  [green]✓[/]  {line}")
+    elif status == "found":
+        console.print(f"  [yellow]✓[/]  {line}")
+    else:
+        console.print(f"  [red]✗[/]  {line}")
 
 def print_summary(results: list[CleanResult], dry_run: bool) -> None:
     total_mb = sum(r.size_mb for r in results)
     count = len(results)
     size_str = format_size(total_mb)
-
-    print()
+ 
     if dry_run:
-        print(f"  {count} folders found · {size_str} reclaimable")
+        summary = f"[bold]{count}[/] folders found  ·  [bold]{size_str}[/] reclaimable"
     else:
         deleted = sum(1 for r in results if r.deleted)
         skipped = count - deleted
-        print(f"  {deleted} folders deleted · {size_str} freed", end="")
+        summary = f"[bold]{deleted}[/] folders deleted  ·  [bold]{size_str}[/] freed"
         if skipped:
-            print(f"  ({skipped} skipped)", end="")
-        print()
+            summary += f"  [dim]({skipped} skipped)[/]"
+ 
+    console.print()
+    console.print(Panel(summary))
