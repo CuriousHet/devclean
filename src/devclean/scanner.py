@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+import os
 
 from devclean.exceptions import ScanError
 
@@ -10,7 +11,6 @@ class ScanResult:
     path: Path
     name: str
     parent: Path
-
 
 def scan(root: Path, targets: list[str]) -> Iterator[ScanResult]:
     """
@@ -28,18 +28,20 @@ def scan(root: Path, targets: list[str]) -> Iterator[ScanResult]:
 
     target_set = set(targets)
 
-    for path in root.rglob("*"):
-        try:
-            if not path.is_dir():
+    for root_dir, dirs, files in os.walk(root, topdown=True):
+        for d in list(dirs):  # copy to iterate safely
+            try:
+                if d in target_set:
+                    path = Path(root_dir) / d
+                    dirs.remove(d)  # prune — os.walk won't descend
+                    yield ScanResult(
+                        path=path,
+                        name=d,
+                        parent=path.parent,
+                    )
+            except (PermissionError, OSError):
+                dirs.discard(d) if hasattr(dirs, 'discard') else None
                 continue
-            if path.name in target_set:
-                yield ScanResult(
-                    path=path,
-                    name=path.name,
-                    parent=path.parent,
-                )
-        except (PermissionError, OSError):
-            continue
 
 # def main():
 
