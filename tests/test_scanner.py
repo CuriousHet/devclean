@@ -74,3 +74,11 @@ def test_returns_scan_result_instances(tmp_path):
     (tmp_path / "app" / "node_modules").mkdir(parents=True)
     results = list(scan(tmp_path, ["node_modules"]))
     assert all(isinstance(r, ScanResult) for r in results)
+
+def test_does_not_scan_inside_matched_folder(tmp_path):
+    (tmp_path / "node_modules" / "__pycache__").mkdir(parents=True)
+    results = list(scan(tmp_path, ["node_modules", "__pycache__"]))
+    assert len(results) == 1
+    r = results[0]
+    assert r.name == "node_modules"
+    assert r.path == tmp_path / "node_modules"
