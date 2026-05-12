@@ -1,13 +1,15 @@
 from pathlib import Path
 import argparse
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+import logging
 
 from devclean.scanner import scan
 from devclean.cleaner import clean
-from devclean.reporter import print_result, print_summary
+from devclean.reporter import print_result, print_summary, print_header
 from devclean.exceptions import ScanError, CleanError
-from devclean.reporter import print_header
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_TARGETS = [
     "node_modules", "venv", ".venv", "env",
@@ -20,40 +22,27 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="devclean — clean development junk folders"
     )
-
-    # positional argument
-    parser.add_argument(
-        "path",
-        type=Path,
-        help="Root directory to scan"
-    )
-
-    # flag
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Scan but do not delete folders"
-    )
-
-    # optional list
-    parser.add_argument(
-        "--targets",
-        nargs="+",
-        help="Override default target folder names"
-    )
-
-    # optional float
-    parser.add_argument(
-        "--min-size",
-        type=float,
-        default=0.0,
-        help="Skip folders smaller than this size (in MB)"
-    )
-
+    parser.add_argument("path", type=Path, help="Root directory to scan")
+    parser.add_argument("--dry-run", action="store_true", help="Scan but do not delete")
+    parser.add_argument("--targets", nargs="+", help="Override default target folder names")
+    parser.add_argument("--min-size", type=float, default=0.0, help="Skip folders smaller than N MB")
+    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     return parser.parse_args()
+
+
+def setup_logging(verbose: bool) -> None:
+    level = logging.DEBUG if verbose else logging.WARNING
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s | %(message)s"))
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    root_logger.addHandler(handler)
+
 
 def main() -> None:
     args = parse_args()
+    setup_logging(args.verbose)
+
     root: Path = args.path
     dry_run: bool = args.dry_run
     targets = args.targets if args.targets else DEFAULT_TARGETS
@@ -64,6 +53,7 @@ def main() -> None:
 
     try:
         scan_results = list(scan(root, targets))
+        logger.debug("Found %d candidate folders", len(scan_results))
 
         with ThreadPoolExecutor() as executor:
             futures = [
@@ -75,21 +65,27 @@ def main() -> None:
                 try:
                     clean_result = future.result()
 
+                    if not clean_result.path.exists() and clean_result.size_mb == 0.0:
+                        logger.debug("Skipped '%s' — already gone", scan_result.name)
+                        continue
+
                     if clean_result.size_mb < min_size:
+                        logger.debug(
+                            "Skipped '%s' (%.2f MB < %.2f MB min)",
+                            scan_result.name,
+                            clean_result.size_mb,
+                            min_size,
+                        )
                         continue
 
                     print_result(clean_result)
                     results.append(clean_result)
 
                 except CleanError as e:
-                    print(f"Error cleaning '{scan_result.name}': {e}", file=sys.stderr)
+                    logger.warning("Error cleaning '%s': %s", scan_result.name, e)
 
         print_summary(results, dry_run)
 
     except ScanError as e:
-        print(f"Scan error: {e}", file=sys.stderr)
+        logger.error("Scan error: %s", e)
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
