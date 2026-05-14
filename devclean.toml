@@ -1,0 +1,4 @@
+[devclean]
+targets = ["node_modules", "venv", "__pycache__"]
+min_size = 1.0
+dry_run = true
