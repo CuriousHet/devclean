@@ -8,6 +8,7 @@ from devclean.scanner import scan
 from devclean.cleaner import clean
 from devclean.reporter import print_result, print_summary, print_header
 from devclean.exceptions import ScanError, CleanError
+from devclean.config import load_config
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +45,30 @@ def main() -> None:
     setup_logging(args.verbose)
 
     root: Path = args.path
-    dry_run: bool = args.dry_run
-    targets = args.targets if args.targets else DEFAULT_TARGETS
-    min_size: float = args.min_size
+    
+    # load config
+    config = load_config(root)
+
+    #defaults
+    dry_run: bool = False
+    targets: list[str] = DEFAULT_TARGETS
+    min_size: float = 0.0
+
+    # config file overrides defaults
+    if "targets" in config:
+        targets = config["targets"]
+    if "min_size" in config:
+        min_size = config["min_size"]
+    if "dry_run" in config:
+        dry_run = config["dry_run"]
+
+    # CLI flags override config file
+    if args.dry_run:
+        dry_run = args.dry_run
+    if args.targets:
+        targets = args.targets
+    if args.min_size is not None:
+        min_size = args.min_size
 
     print_header(str(root))
     results = []
